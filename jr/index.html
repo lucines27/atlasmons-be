@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carnet Junior Recruteur — Équipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css">
+<!-- Firebase (optionnel) : voir la constante firebaseConfig plus bas dans le script pour activer la synchro en temps réel -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --primary:#6C5CE7;
+    --primary-dark:#4834d4;
+    --accent:#FF6B9D;
+    --success:#00B894;
+    --danger:#FF6B6B;
+    --warning:#FDCB6E;
+    --bg:#f4f5fb;
+    --card:#ffffff;
+    --text:#2d3436;
+    --muted:#8a8fa3;
+    --border:#e8e9f3;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{background:var(--bg);}
+  body{ margin:0; font-family:'Poppins',sans-serif; color:var(--text); padding-bottom:60px; }
+  header.hero{ background:linear-gradient(120deg,var(--primary) 0%,var(--primary-dark) 55%,var(--accent) 130%); color:#fff; padding:26px 24px 70px; position:relative; overflow:hidden; }
+  header.hero::before{content:"";position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:rgba(255,255,255,0.08);border-radius:50%;}
+  .hero-inner{max-width:1100px;margin:0 auto;position:relative;z-index:1;}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;}
+  .hero-eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:0.85;font-weight:600;}
+  .hero-title{font-size:28px;font-weight:800;margin:4px 0 2px;}
+  .hero-sub{font-size:13px;opacity:0.9;font-weight:400;max-width:560px;}
+
+  .identity-box{ background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.3); border-radius:12px; padding:8px 14px; font-size:12.5px; display:flex;align-items:center;gap:10px; }
+  .identity-box button{ border:none;background:rgba(255,255,255,0.25);color:#fff; font-size:11px;padding:5px 10px;border-radius:16px;cursor:pointer;font-weight:600; }
+
+  .container{max-width:1100px;margin:-46px auto 0;padding:0 20px;position:relative;z-index:2;}
+
+  .local-bar{ background:var(--card);border-radius:var(--radius);padding:12px 18px; box-shadow:0 10px 30px rgba(60,50,120,0.10);margin-bottom:18px; display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px; font-size:12.5px;color:var(--muted); }
+  .local-bar .left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .save-dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0;}
+  .local-actions button{ border:1.5px solid var(--border);background:#fff;color:var(--primary-dark); font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;cursor:pointer;margin-left:8px; }
+  .local-actions button.primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+
+  .card{background:var(--card);border-radius:var(--radius);padding:22px;box-shadow:0 10px 30px rgba(60,50,120,0.08);margin-bottom:20px;}
+
+  .list-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .list-head h2{margin:0;font-size:20px;font-weight:800;}
+  .list-head p{margin:2px 0 0;font-size:13px;color:var(--muted);}
+  .btn-new{ background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border:none; font-size:13px;font-weight:700;padding:10px 18px;border-radius:20px;cursor:pointer; }
+
+  .badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#eee;color:#666;}
+  .badge.recruteur{background:#e3fbf3;color:var(--success);}
+  .badge.prolongation{background:#fff6e0;color:#a9791b;}
+  .badge.fired{background:#ffecec;color:var(--danger);}
+  .badge.encours{background:#eef0ff;color:var(--primary-dark);}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:13.5px;}
+
+  .stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+  @media(max-width:750px){.stat-cards{grid-template-columns:1fr 1fr;}}
+  .stat-card{background:#fbfbfe;border:1.5px solid var(--border);border-radius:12px;padding:14px;}
+  .stat-card .num{font-size:22px;font-weight:800;color:var(--primary-dark);}
+  .stat-card .lbl{font-size:11px;color:var(--muted);font-weight:600;}
+  .chart-wrap{background:#fbfbfe;border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;height:230px;}
+  .chart-wrap h4{margin:0 0 8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:750px){.charts-row{grid-template-columns:1fr;}}
+
+
+  #jrTable{font-size:13px;}
+  #jrTable button.view-btn{ border:none;background:var(--primary);color:#fff;font-size:11px;font-weight:700; padding:5px 12px;border-radius:16px;cursor:pointer; }
+
+  .back-btn{ border:none;background:none;color:var(--primary-dark);font-weight:700;font-size:13px; cursor:pointer;display:flex;align-items:center;gap:6px;margin-bottom:14px;padding:0; }
+
+  nav.tabs{display:flex;gap:8px;overflow-x:auto;background:var(--card);border-radius:var(--radius);padding:10px;box-shadow:0 10px 30px rgba(60,50,120,0.10);margin-bottom:18px;}
+  .tab-btn{flex:1 0 auto;min-width:70px;border:none;background:transparent;padding:9px 6px;border-radius:12px;cursor:pointer;font-family:inherit;text-align:center;transition:background .2s;position:relative;}
+  .tab-btn:hover{background:#f2f1fd;}
+  .tab-btn.active{background:linear-gradient(135deg,var(--primary),var(--accent));}
+  .tab-btn.active .tab-num,.tab-btn.active .tab-label{color:#fff;}
+  .tab-num{font-size:14px;font-weight:700;color:var(--primary-dark);display:block;}
+  .tab-label{font-size:9.5px;color:var(--muted);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tab-badge{position:absolute;top:2px;right:5px;width:13px;height:13px;border-radius:50%;font-size:8.5px;display:flex;align-items:center;justify-content:center;background:var(--success);color:#fff;font-weight:700;}
+  .tab-badge.non{background:var(--danger);}
+  .tab-add{flex:0 0 auto;min-width:44px;border:1.5px dashed var(--border);background:transparent;border-radius:12px;cursor:pointer;color:var(--muted);font-size:18px;font-weight:700;}
+  .tab-add:hover{background:#f2f1fd;color:var(--primary-dark);}
+
+  .panel{background:var(--card);border-radius:var(--radius);padding:24px 22px;box-shadow:0 10px 30px rgba(60,50,120,0.08);margin-bottom:20px;}
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:1px dashed var(--border);}
+  .panel-head h2{margin:0;font-size:20px;font-weight:800;}
+  .panel-head p{margin:2px 0 0;color:var(--muted);font-size:12.5px;}
+
+  .section{margin-bottom:24px;}
+  .section-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+  .field label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px;}
+  .field input[type=text],.field input[type=password],.field select,.field textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:13.5px;background:#fbfbfe;resize:vertical;}
+  .field input[type=text]:focus,.field input[type=password]:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);background:#fff;}
+  .field-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+
+  .dons-box{background:#f7f6ff;border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;}
+  .dons-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .dons-row label{font-size:12px;color:var(--muted);font-weight:600;}
+  .dons-row input{width:70px;border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;font-family:inherit;font-size:13.5px;text-align:center;}
+  .dons-track{height:10px;background:#e6e4fa;border-radius:20px;overflow:hidden;}
+  .dons-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:20px;}
+  .dons-target{font-size:10.5px;color:var(--muted);margin-top:4px;text-align:right;}
+
+  table.pitch-table{width:100%;border-collapse:collapse;}
+  table.pitch-table td{padding:7px 0;font-size:13px;font-weight:600;vertical-align:middle;}
+  .stars{display:flex;gap:4px;}
+  .star-btn{border:none;background:none;cursor:pointer;font-size:20px;color:#dcdcf0;padding:0;line-height:1;}
+  .star-btn.filled{color:var(--warning);}
+  .score-pill{font-size:10.5px;background:#f0effc;color:var(--primary-dark);border-radius:20px;padding:2px 8px;margin-left:8px;font-weight:700;}
+
+  .debrief-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:750px){.debrief-cols{grid-template-columns:1fr;}}
+  .debrief-col{background:#fbfbfe;border:1.5px solid var(--border);border-radius:12px;padding:12px;}
+  .debrief-col h4{margin:0 0 8px;font-size:11.5px;display:flex;align-items:center;gap:6px;}
+  .debrief-col.positive h4{color:var(--success);}
+  .debrief-col.negative h4{color:var(--danger);}
+  .debrief-col.improve h4{color:var(--primary-dark);}
+  .debrief-item{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+  .debrief-item input{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;font-family:inherit;font-size:12.5px;background:#fff;}
+  .debrief-item .rm{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;width:18px;}
+  .add-item{border:1.5px dashed var(--border);background:none;color:var(--muted);font-family:inherit;font-size:11.5px;padding:6px 10px;border-radius:8px;cursor:pointer;width:100%;}
+
+  .toggle-btns{display:flex;gap:8px;}
+  .toggle-btn{border:1.5px solid var(--border);background:#fff;font-family:inherit;font-weight:700;font-size:12.5px;padding:7px 18px;border-radius:20px;cursor:pointer;}
+  .toggle-btn.oui.active{background:var(--success);border-color:var(--success);color:#fff;}
+  .toggle-btn.non.active{background:var(--danger);border-color:var(--danger);color:#fff;}
+
+  .final-box{background:linear-gradient(120deg,#fff7f0,#f3f0ff);border:1.5px solid var(--border);border-radius:14px;padding:16px;text-align:center;}
+  .final-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .final-btn{border:2px solid var(--border);background:#fff;font-family:inherit;font-weight:700;font-size:12.5px;padding:11px 16px;border-radius:12px;cursor:pointer;min-width:130px;}
+  .final-btn.recruteur.active{background:var(--success);border-color:var(--success);color:#fff;}
+  .final-btn.prolongation.active{background:var(--warning);border-color:var(--warning);color:#5a4600;}
+  .final-btn.fired.active{background:var(--danger);border-color:var(--danger);color:#fff;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(30,20,60,0.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal{background:#fff;border-radius:16px;padding:24px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+  .modal h3{margin:0 0 6px;font-size:17px;}
+  .modal p{margin:0 0 16px;font-size:12.5px;color:var(--muted);}
+  .modal .field{margin-bottom:12px;}
+  .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+  .modal .actions button{border:none;font-family:inherit;font-weight:700;font-size:13px;padding:9px 16px;border-radius:10px;cursor:pointer;}
+  .modal .actions .cancel{background:#f1f1f6;color:var(--muted);}
+  .modal .actions .confirm{background:var(--primary);color:#fff;}
+  .modal .actions .confirm[disabled]{opacity:.5;cursor:not-allowed;}
+
+  .role-choice{display:flex;flex-direction:column;gap:10px;margin-bottom:6px;}
+  .role-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1.5px solid var(--border);background:#fbfbfe;border-radius:12px;padding:12px 14px;cursor:pointer;font-family:inherit;width:100%;}
+  .role-btn:hover{border-color:var(--primary);background:#f5f4ff;}
+  .role-emoji{font-size:20px;}
+  .role-title{font-weight:700;font-size:14px;color:var(--text);}
+  .role-desc{font-size:11.5px;color:var(--muted);}
+
+  .toast{position:fixed;bottom:18px;right:18px;background:var(--text);color:#fff;font-size:12px;font-weight:600;padding:10px 18px;border-radius:20px;opacity:0;transition:opacity .3s;box-shadow:0 6px 20px rgba(0,0,0,0.2);z-index:60;}
+  .toast.show{opacity:0.95;}
+
+  @media print{
+    .local-bar,.tabs,.back-btn{display:none !important;}
+    .panel{box-shadow:none;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-top">
+      <div>
+        <div class="hero-eyebrow">Formation Junior Recruteur</div>
+        <div class="hero-title">Carnet Junior Recruteur — Équipe</div>
+        <div class="hero-sub" id="heroSub">Suivi de plusieurs Junior Recruteurs.</div>
+      </div>
+      <div class="identity-box" id="identityBox"></div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="local-bar">
+    <div class="left">
+      <span class="save-dot" id="saveDot"></span>
+      <span id="saveLabel">Chargement…</span>
+    </div>
+    <div class="local-actions">
+      <button id="btnExport">📥 Exporter</button>
+      <button id="btnImport" class="primary">📤 Importer</button>
+      <input type="file" id="fileImport" accept="application/json" style="display:none;">
+    </div>
+  </div>
+  <div id="app"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- config ---------- */
+const STORAGE_KEY = 'carnetJR_shared_v1';
+const DONS_OBJECTIF = 15;
+const WINDOW_SIZE = 6;
+
+const DAY_TITLES = {
+  1:"Les bases", 2:"Perfect pitch", 3:"Contre argu",
+  4:"Control mindset", 5:"Quality score", 6:"End of the challenge",
+};
+function dayTitle(n){ return DAY_TITLES[n] || "Jour supplémentaire"; }
+
+const CRITERIA = [
+  {key:"pitch", label:"Pitch"},{key:"intonation", label:"Intonation"},
+  {key:"gestuelles", label:"Gestuelles"},{key:"satisfaction", label:"Satisfaction"},
+];
+const ASSOC_OPTIONS = ["Croix-Rouge","Oxfam","WWF","Amnesty International","Fondation Contre le Cancer"];
+
+/* identifiant commun a tous les managers/captains (pas de prenom individuel) */
+const STAFF_ID = 'MGMT';
+const STAFF_PASSWORD = 'ATLAS2026';
+
+/* ---------- Firebase (optionnel — active la synchro en temps réel entre tous les appareils) ----------
+   Remplace les valeurs ci-dessous par celles de TA console Firebase (Paramètres du projet > Général >
+   "Vos applications" > Config). Tant que apiKey vaut "REMPLACE_MOI", l'app fonctionne exactement comme
+   avant : sauvegarde uniquement locale sur cet appareil (boutons Exporter / Importer). */
+const firebaseConfig = {
+  apiKey: "AIzaSyDf7kHWTAZBANbp7cqgeJe0GOVPRhpZY9o",
+  authDomain: "carnet-de-bord-jr---asa-mons.firebaseapp.com",
+  projectId: "carnet-de-bord-jr---asa-mons",
+  storageBucket: "carnet-de-bord-jr---asa-mons.firebasestorage.app",
+  messagingSenderId: "506226371242",
+  appId: "1:506226371242:web:f5172c028538f604467ed3"
+};
+const FIREBASE_ENABLED = !!(firebaseConfig.apiKey && firebaseConfig.apiKey !== "REMPLACE_MOI");
+let db = null;
+let unsubscribeJuniors = null;
+if(FIREBASE_ENABLED){
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  db.settings({ignoreUndefinedProperties:true});
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+}
+
+/* ---------- state ---------- */
+let DATA = {version:1, updatedAt:null, updatedBy:null, juniors:{}};
+let identity = null; // {name}
+let view = 'list'; // list | detail
+let currentJrId = null;
+let currentDayTab = 0;
+let showArchived = false;
+let scoreChart=null, donsChart=null, decisionChart=null, grid=null;
+
+/* ---------- utils ---------- */
+function uid(){ return 'jr_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+/* hachage simple (pas de crypto forte : c'est une protection d'usage, pas une vraie sécurité) */
+function simpleHash(str){
+  let h = 0;
+  const s = (str||'').toString();
+  for(let i=0;i<s.length;i++){ h = (h<<5) - h + s.charCodeAt(i); h |= 0; }
+  return h.toString(36);
+}
+function escapeHtml(str){ return (str||"").toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+function emptyDay(){
+  return {
+    teamLeader:"", assoc:"", objectif:"", dons:"",
+    scores:{pitch:0,intonation:0,gestuelles:0,satisfaction:0},
+    notes:"", positive:["","",""], negative:["","",""], improvements:["","",""],
+    notesSupp:"", pret:null,
+  };
+}
+function emptyJunior(name){
+  const days = {};
+  for(let n=1;n<=6;n++) days[n] = emptyDay();
+  return {id: uid(), name, createdAt: new Date().toISOString(), maxDay: 6, decision: null, pin: null, archived: false, days};
+}
+function jrDayNumbers(jr){
+  const nums = [];
+  for(let n=1;n<=jr.maxDay;n++) nums.push(n);
+  return nums;
+}
+/* fenêtre glissante des WINDOW_SIZE derniers jours pour les graphiques */
+function jrWindowDays(jr){
+  const all = jrDayNumbers(jr);
+  return all.slice(Math.max(0, all.length - WINDOW_SIZE));
+}
+function avgScore(day){
+  const vals = Object.values(day.scores).filter(v=>v>0);
+  if(!vals.length) return 0;
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+function jrProgressDay(jr){
+  let last = 0;
+  jrDayNumbers(jr).forEach(n=>{ if(jr.days[n].pret) last = n; });
+  return last;
+}
+function jrAvgScore(jr){
+  const scores = jrDayNumbers(jr).map(n=>avgScore(jr.days[n])).filter(s=>s>0);
+  if(!scores.length) return 0;
+  return scores.reduce((a,b)=>a+b,0)/scores.length;
+}
+function jrWindowDonsTotal(jr){
+  return jrWindowDays(jr).reduce((s,n)=> s + (parseInt(jr.days[n].dons)||0), 0);
+}
+function donsDayColor(count){
+  if(count>=3) return '#00B894'; // vert
+  if(count===2) return '#FDCB6E'; // jaune
+  return '#FF6B6B'; // rouge (0 ou 1)
+}
+
+/* migre les anciennes données (ventes supprimées, décision qui était sur J6, pas de maxDay) */
+function migrateData(){
+  Object.values(DATA.juniors).forEach(jr=>{
+    if(!jr.maxDay) jr.maxDay = 6;
+    if(jr.decision === undefined) jr.decision = null;
+    if(jr.pin === undefined) jr.pin = jr.pinHash ? null : null;
+    if(jr.pinHash !== undefined) delete jr.pinHash;
+    if(jr.archived === undefined) jr.archived = false;
+    if(jr.captain !== undefined) delete jr.captain;
+    for(let n=1;n<=jr.maxDay;n++){
+      if(!jr.days[n]) jr.days[n] = emptyDay();
+      if(jr.days[n].dons === undefined) jr.days[n].dons = "";
+      if(jr.days[n].ventes !== undefined) delete jr.days[n].ventes;
+      if(jr.days[n].decision !== undefined){
+        if(jr.days[n].decision && !jr.decision) jr.decision = jr.days[n].decision;
+        delete jr.days[n].decision;
+      }
+    }
+  });
+}
+
+/* ---------- identity ---------- */
+function loadIdentity(){
+  try{ return JSON.parse(localStorage.getItem('carnetJR_identity')); }catch(e){ return null; }
+}
+function saveIdentity(id){ localStorage.setItem('carnetJR_identity', JSON.stringify(id)); }
+
+function renderIdentityBox(){
+  const box = document.getElementById('identityBox');
+  if(!identity){ box.innerHTML=''; return; }
+  const roleLabel = identity.role==='jr' ? 'Junior Recruteur' : 'Manager / Captain';
+  box.innerHTML = `<span>👤 <strong>${escapeHtml(identity.name)}</strong> <span style="opacity:.75;font-size:11px;">(${roleLabel})</span></span><button id="btnEditIdentity">Changer</button>`;
+  document.getElementById('btnEditIdentity').onclick = ()=> openIdentityModal(true);
+}
+
+function openIdentityModal(isEdit){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  let step = (isEdit && identity) ? (identity.role==='jr' ? 'jrSelect' : 'staffForm') : 'role';
+  let chosenRole = identity ? identity.role : null;
+  let selectedJrId = (identity && identity.role==='jr') ? identity.jrId : null;
+
+  function renderRoleStep(){
+    overlay.innerHTML = `
+      <div class="modal">
+        <h3>${isEdit ? 'Modifier ton profil' : 'Bienvenue 👋'}</h3>
+        <p>Qui es-tu ?</p>
+        <div class="role-choice">
+          <button type="button" class="role-btn" data-role="staff">
+            <span class="role-emoji">🧑‍💼</span>
+            <span class="role-title">Manager / Captain</span>
+            <span class="role-desc">Accès complet à tous les Junior Recruteurs</span>
+          </button>
+          <button type="button" class="role-btn" data-role="jr">
+            <span class="role-emoji">🎯</span>
+            <span class="role-title">Junior Recruteur</span>
+            <span class="role-desc">Voir uniquement mes propres stats de dons</span>
+          </button>
+        </div>
+        ${isEdit ? '<div class="actions"><button class="cancel" id="idCancel">Annuler</button></div>' : ''}
+      </div>`;
+    if(isEdit){ overlay.querySelector('#idCancel').onclick = ()=> overlay.remove(); }
+    overlay.querySelectorAll('.role-btn').forEach(b=>{
+      b.onclick = ()=>{ chosenRole = b.dataset.role; step = chosenRole==='jr' ? 'jrSelect' : 'staffForm'; renderStep(); };
+    });
+  }
+
+  function renderStaffForm(){
+    overlay.innerHTML = `
+      <div class="modal">
+        <h3>Manager / Captain</h3>
+        <p>Identifiant commun à tous les managers/captains.</p>
+        <div class="field"><label>Identifiant</label><input type="text" id="idName" value="${STAFF_ID}" disabled style="opacity:.7;"></div>
+        <div class="field">
+          <label>Mot de passe équipe</label>
+          <input type="password" id="idPass" placeholder="••••••">
+        </div>
+        <div class="actions">
+          <button class="cancel" id="idBack">← Retour</button>
+          <button class="confirm" id="idConfirm">Valider</button>
+        </div>
+      </div>`;
+    overlay.querySelector('#idBack').onclick = ()=>{ step='role'; renderStep(); };
+    overlay.querySelector('#idConfirm').onclick = ()=>{
+      const pass = overlay.querySelector('#idPass').value;
+      if(!pass){ showToast('Merci d\'indiquer le mot de passe'); return; }
+      if(pass !== STAFF_PASSWORD){
+        showToast('Mot de passe incorrect');
+        return;
+      }
+      identity = {name: STAFF_ID, role:'staff'};
+      saveIdentity(identity);
+      overlay.remove();
+      view = 'list'; currentJrId = null;
+      renderIdentityBox(); renderAll();
+    };
+  }
+
+  function renderJrSelectStep(){
+    const juniors = Object.values(DATA.juniors).filter(j=>!j.archived);
+    overlay.innerHTML = `
+      <div class="modal">
+        <h3>Ton profil Junior Recruteur</h3>
+        <p>Sélectionne ton nom dans la liste (créé par ton captain).</p>
+        ${juniors.length===0 ? `<p style="color:var(--danger);font-size:12.5px;">Aucun JR enregistré pour l'instant. Demande à ton captain de créer ton profil, ou d'importer les données de l'équipe, avant de continuer.</p>` : `
+        <div class="field"><label>Mon profil</label>
+          <select id="jrSelect">
+            <option value="">— Choisir —</option>
+            ${juniors.map(j=>`<option value="${j.id}" ${selectedJrId===j.id?'selected':''}>${escapeHtml(j.name)}</option>`).join('')}
+          </select>
+        </div>`}
+        <div class="actions">
+          <button class="cancel" id="idBack">← Retour</button>
+          <button class="confirm" id="idConfirm" ${juniors.length===0?'disabled':''}>Continuer</button>
+        </div>
+      </div>`;
+    overlay.querySelector('#idBack').onclick = ()=>{ step='role'; renderStep(); };
+    const confirmBtn = overlay.querySelector('#idConfirm');
+    if(confirmBtn && juniors.length){
+      confirmBtn.onclick = ()=>{
+        const sel = overlay.querySelector('#jrSelect');
+        const jrId = sel ? sel.value : '';
+        if(!jrId){ showToast('Choisis ton nom dans la liste'); return; }
+        selectedJrId = jrId;
+        step = 'jrPin';
+        renderStep();
+      };
+    }
+  }
+
+  function renderJrPinStep(){
+    const jr = DATA.juniors[selectedJrId];
+    if(!jr){ step='jrSelect'; renderStep(); return; }
+    const hasPin = !!jr.pin;
+    overlay.innerHTML = `
+      <div class="modal">
+        <h3>Profil de ${escapeHtml(jr.name)}</h3>
+        <p>${hasPin ? "Entre ton code personnel pour accéder à tes stats. Ton captain/manager peut te le redonner s'il est perdu." : "Crée un code personnel (4 chiffres min.) pour protéger ton profil."}</p>
+        <div class="field"><label>${hasPin ? 'Ton code' : 'Crée ton code'}</label><input type="password" id="idPin" inputmode="numeric" placeholder="••••"></div>
+        <div class="actions">
+          <button class="cancel" id="idBack">← Retour</button>
+          <button class="confirm" id="idConfirm">Valider</button>
+        </div>
+      </div>`;
+    overlay.querySelector('#idBack').onclick = ()=>{ step='jrSelect'; renderStep(); };
+    overlay.querySelector('#idConfirm').onclick = ()=>{
+      const pin = overlay.querySelector('#idPin').value.trim();
+      if(!pin){ showToast('Merci d\'indiquer un code'); return; }
+      if(!hasPin){
+        if(pin.length < 4){ showToast('Choisis un code d\'au moins 4 caractères'); return; }
+        jr.pin = pin;
+        saveLocal(jr.id);
+      } else if(pin !== jr.pin){
+        showToast('Code incorrect');
+        return;
+      }
+      identity = {name: jr.name, role:'jr', jrId: jr.id};
+      saveIdentity(identity);
+      overlay.remove();
+      view = 'list'; currentJrId = null;
+      renderIdentityBox(); renderAll();
+    };
+  }
+
+  function renderStep(){
+    if(step === 'role') renderRoleStep();
+    else if(step === 'jrSelect') renderJrSelectStep();
+    else if(step === 'jrPin') renderJrPinStep();
+    else renderStaffForm();
+  }
+
+  document.body.appendChild(overlay);
+  renderStep();
+}
+
+/* ---------- persistence : cache local (toujours) + Firestore (si configuré) ---------- */
+function loadLocal(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)); }catch(e){ return null; }
+}
+function saveLocalCache(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }catch(e){}
+}
+const _writeTimers = {};
+/* saveLocal(jrId) : persiste tout le temps en local (cache/backup), et si Firebase est configuré,
+   programme (avec un léger délai anti-rafale) l'envoi du JR modifié vers Firestore pour que tous
+   les autres appareils connectés le reçoivent en direct. */
+function saveLocal(jrId){
+  DATA.updatedAt = new Date().toISOString();
+  DATA.updatedBy = identity ? identity.name : DATA.updatedBy;
+  saveLocalCache();
+  updateStatusBar();
+  if(FIREBASE_ENABLED && jrId && DATA.juniors[jrId]){
+    clearTimeout(_writeTimers[jrId]);
+    _writeTimers[jrId] = setTimeout(()=>{
+      const jr = DATA.juniors[jrId];
+      if(!jr) return;
+      db.collection('juniors').doc(jrId).set(jr).catch(err=>{
+        console.error(err);
+        showToast('Erreur de synchronisation — vérifie ta connexion internet');
+      });
+    }, 500);
+  }
+}
+/* écrit tous les JR en une fois vers Firestore (utilisé après un Import) */
+function bulkSyncAllJuniors(){
+  if(!FIREBASE_ENABLED) return;
+  const ids = Object.keys(DATA.juniors);
+  if(!ids.length) return;
+  const batch = db.batch();
+  ids.forEach(id=> batch.set(db.collection('juniors').doc(id), DATA.juniors[id]));
+  batch.commit().catch(err=>{
+    console.error(err);
+    showToast('Erreur de synchronisation de l\'import');
+  });
+}
+/* supprime un JR localement + sur Firestore */
+function deleteJr(jrId){
+  delete DATA.juniors[jrId];
+  saveLocalCache();
+  updateStatusBar();
+  if(FIREBASE_ENABLED){
+    db.collection('juniors').doc(jrId).delete().catch(err=>{
+      console.error(err);
+      showToast('Erreur de synchronisation lors de la suppression');
+    });
+  }
+}
+/* écoute Firestore en temps réel : répercute les changements des autres appareils dans DATA.juniors */
+function startRealtimeSync(){
+  if(!FIREBASE_ENABLED) return;
+  if(unsubscribeJuniors) unsubscribeJuniors();
+  unsubscribeJuniors = db.collection('juniors').onSnapshot(snapshot=>{
+    let changed = false;
+    snapshot.docChanges().forEach(change=>{
+      if(change.doc.metadata.hasPendingWrites) return; // écho de notre propre écriture, déjà appliquée localement
+      if(change.type === 'removed'){
+        if(DATA.juniors[change.doc.id]){ delete DATA.juniors[change.doc.id]; changed = true; }
+      } else {
+        const data = change.doc.data();
+        data.id = change.doc.id;
+        DATA.juniors[change.doc.id] = data;
+        changed = true;
+      }
+    });
+    if(changed){
+      migrateData();
+      saveLocalCache();
+      renderAll(true);
+    }
+    updateStatusBar();
+  }, err=>{
+    console.error(err);
+    showToast('Connexion au serveur perdue — vérifie ta connexion internet');
+  });
+}
+function updateStatusBar(){
+  const dot = document.getElementById('saveDot');
+  const lbl = document.getElementById('saveLabel');
+  if(!dot || !lbl) return;
+  dot.className = 'save-dot';
+  const when = DATA.updatedAt ? new Date(DATA.updatedAt).toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : null;
+  if(FIREBASE_ENABLED){
+    lbl.textContent = when ? `🟢 Synchronisé en temps réel · dernière modif. ${when}${DATA.updatedBy? ' par '+DATA.updatedBy : ''}` : 'Connexion au serveur en cours…';
+  } else {
+    lbl.textContent = when ? `Enregistré sur cet appareil · ${when}${DATA.updatedBy? ' par '+DATA.updatedBy : ''}` : 'Aucune donnée enregistrée pour l\'instant';
+  }
+}
+
+/* ---------- export / import ---------- */
+function exportData(){
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `carnet_jr_export_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Export téléchargé — envoie ce fichier à ton équipe');
+}
+function importDataFromFile(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const imported = JSON.parse(e.target.result);
+      if(!imported || typeof imported.juniors !== 'object') throw new Error('format invalide');
+      Object.assign(DATA.juniors, imported.juniors);
+      migrateData();
+      saveLocalCache();
+      updateStatusBar();
+      if(FIREBASE_ENABLED) bulkSyncAllJuniors();
+      view = 'list'; currentJrId = null;
+      renderAll();
+      showToast(`Import réussi — ${Object.keys(DATA.juniors).length} JR au total`);
+    }catch(err){
+      console.error(err);
+      showToast('Fichier invalide — vérifie que c\'est bien un export de ce carnet');
+    }
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('btnExport').onclick = exportData;
+document.getElementById('btnImport').onclick = ()=> document.getElementById('fileImport').click();
+document.getElementById('fileImport').onchange = (e)=>{
+  const file = e.target.files[0];
+  if(file) importDataFromFile(file);
+  e.target.value = '';
+};
+
+/* ---------- rendering: list views ---------- */
+/* fromRemote=true : appelé depuis l'écoute Firestore suite à un changement fait par un AUTRE appareil.
+   Dans ce cas, si la personne est en train de taper dans un champ, on ne redessine pas tout de suite
+   pour ne pas lui couper sa saisie — les données sont déjà à jour en mémoire, l'écran se rafraîchira
+   au prochain rendu normal (changement d'onglet, clic, etc.). */
+function renderAll(fromRemote){
+  if(fromRemote){
+    const app0 = document.getElementById('app');
+    const active = document.activeElement;
+    if(app0 && active && app0.contains(active) && active.matches && active.matches('input,textarea,select')){
+      return;
+    }
+  }
+  renderIdentityBox();
+  updateStatusBar();
+  const app = document.getElementById('app');
+  const localBar = document.querySelector('.local-bar');
+  if(!identity){ app.innerHTML=''; if(localBar) localBar.style.display='none'; openIdentityModal(false); return; }
+  if(localBar) localBar.style.display = identity.role==='jr' ? 'none' : 'flex';
+
+  if(identity.role === 'jr'){
+    const jr = DATA.juniors[identity.jrId];
+    if(!jr){
+      app.innerHTML = `<div class="card"><div class="empty-state">Ton profil JR n'existe plus dans les données locales sur cet appareil. Demande à ton captain de te renvoyer un export à jour (bouton Importer), puis <button class="btn-new" id="jrRelink" style="margin-top:10px;">choisis ton profil</button>.</div></div>`;
+      const relink = document.getElementById('jrRelink');
+      if(relink) relink.onclick = ()=> openIdentityModal(true);
+      return;
+    }
+    if(jr.archived){
+      app.innerHTML = `<div class="card"><div class="empty-state">Ton profil a été archivé. Contacte ton manager/captain si tu reviens dans l'équipe.</div></div>`;
+      return;
+    }
+    app.innerHTML = jrSelfViewHtml(jr);
+    renderJrSelfChart(jr);
+    return;
+  }
+
+  if(view === 'detail' && currentJrId && DATA.juniors[currentJrId]){
+    app.innerHTML = detailHtml();
+    bindDetailEvents();
+    if(currentDayTab===0) renderJrCharts();
+  } else {
+    view = 'list';
+    app.innerHTML = dashboardHtml();
+    bindListEvents();
+    renderDashboardWidgets();
+  }
+}
+
+/* ---------- vue restreinte Junior Recruteur (lecture seule) ---------- */
+/* liste en lecture seule d'une colonne de debrief (positive / negative / improvements) */
+function jrDebriefListHtml(items){
+  const filled = (items||[]).filter(v=>v && v.trim());
+  if(!filled.length) return '<span style="color:var(--muted);font-size:12px;">—</span>';
+  return '<ul style="margin:0;padding-left:18px;font-size:12.5px;">' + filled.map(v=>`<li>${escapeHtml(v)}</li>`).join('') + '</ul>';
+}
+/* debrief d'un jour donné, uniquement positif / negatif / améliorations (pas les notes, scores, etc.) */
+function jrDebriefDayHtml(jr, n){
+  const day = jr.days[n];
+  if(!day) return '';
+  const hasContent = [day.positive, day.negative, day.improvements].some(arr=>(arr||[]).some(v=>v && v.trim()));
+  if(!hasContent) return '';
+  return `
+    <div style="border-bottom:1px solid var(--border);padding:14px 0;">
+      <div style="font-weight:700;color:var(--primary-dark);font-size:13px;margin-bottom:10px;">J${n} — ${escapeHtml(dayTitle(n))}</div>
+      <div class="debrief-cols">
+        <div class="debrief-col positive"><h4>➕ Ce qui a bien été</h4>${jrDebriefListHtml(day.positive)}</div>
+        <div class="debrief-col negative"><h4>➖ Ce qui n'a pas été</h4>${jrDebriefListHtml(day.negative)}</div>
+        <div class="debrief-col improve"><h4>● Améliorations attendues</h4>${jrDebriefListHtml(day.improvements)}</div>
+      </div>
+    </div>`;
+}
+function jrSelfViewHtml(jr){
+  const total = jrWindowDonsTotal(jr);
+  const pct = Math.min(100, total/DONS_OBJECTIF*100);
+  const reached = total >= DONS_OBJECTIF;
+  const debriefDays = jrDayNumbers(jr).slice().reverse();
+  const debriefHtml = debriefDays.map(n=>jrDebriefDayHtml(jr,n)).filter(Boolean).join('');
+  return `
+    <div class="card">
+      <div class="list-head">
+        <div><h2>Salut ${escapeHtml(jr.name)} 👋</h2><p>Jour ${jrProgressDay(jr)}/${jr.maxDay}</p></div>
+        ${jr.decision ? `<span class="badge ${jr.decision}">${jr.decision.toUpperCase()}</span>` : `<span class="badge encours">EN COURS</span>`}
+      </div>
+      <div class="dons-box" style="margin-bottom:18px;">
+        <div class="dons-row"><label>Tes dons cumulés (6 derniers jours)</label><span style="font-weight:800;font-size:18px;color:var(--primary-dark);">${total} / ${DONS_OBJECTIF}</span></div>
+        <div class="dons-track"><div class="dons-fill" style="width:${pct}%;background:${reached? 'linear-gradient(90deg,#00B894,#00d9a3)' : 'linear-gradient(90deg,var(--primary),var(--accent))'};"></div></div>
+        <div class="dons-target">${reached ? "🎉 Objectif atteint — tu es prêt(e) pour l'étape recruteur !" : `Il te manque ${DONS_OBJECTIF-total} don${DONS_OBJECTIF-total>1?'s':''} pour atteindre l'objectif recruteur.`}</div>
+      </div>
+      <div class="chart-wrap" style="height:260px;">
+        <h4>Tes dons par jour (6 derniers jours)</h4>
+        <canvas id="jrSelfDonsChart"></canvas>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;">🟢 3 dons ou + · 🟡 2 dons · 🔴 0-1 don</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:6px;">💬 Tes debriefs</div>
+      <p style="margin:0 0 4px;font-size:12px;color:var(--muted);">Ce qui a bien été, ce qui n'a pas été, et les améliorations attendues — jour par jour.</p>
+      ${debriefHtml ? debriefHtml : '<div class="empty-state">Pas encore de debrief enregistré.</div>'}
+    </div>`;
+}
+
+function renderJrSelfChart(jr){
+  const ctx = document.getElementById('jrSelfDonsChart');
+  if(!ctx) return;
+  const windowDays = jrWindowDays(jr);
+  const daily = windowDays.map(n=>parseInt(jr.days[n].dons)||0);
+  const barColors = daily.map(d=>donsDayColor(d));
+  if(donsChart) donsChart.destroy();
+  donsChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: windowDays.map(n=>'J'+n), datasets:[{label:'Dons', data:daily, backgroundColor:barColors, borderRadius:6}] },
+    options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}}, plugins:{legend:{display:false}} }
+  });
+}
+
+function dashboardHtml(){
+  const allJuniors = Object.values(DATA.juniors);
+  const activeJuniors = allJuniors.filter(j=>!j.archived);
+  const archivedJuniors = allJuniors.filter(j=>j.archived);
+  const avgAll = activeJuniors.length ? (activeJuniors.reduce((s,j)=>s+jrAvgScore(j),0)/activeJuniors.length).toFixed(1) : '0.0';
+  const tableJuniors = showArchived ? allJuniors : activeJuniors;
+  return `
+    <div class="card">
+      <div class="list-head">
+        <div><h2>Tous les Junior Recruteurs</h2><p>${activeJuniors.length} JR actif${activeJuniors.length>1?'s':''}${archivedJuniors.length ? ' · '+archivedJuniors.length+' archivé'+(archivedJuniors.length>1?'s':'') : ''}</p></div>
+        <button class="btn-new" id="btnNewJr">+ Nouveau JR</button>
+      </div>
+      ${allJuniors.length === 0 ? `<div class="empty-state">Aucun JR pour l'instant. Clique sur "+ Nouveau JR" pour commencer un suivi, ou importe un fichier partagé par l'équipe.</div>` : `
+      <div class="stat-cards">
+        <div class="stat-card"><div class="num">${activeJuniors.length}</div><div class="lbl">JR suivis</div></div>
+        <div class="stat-card"><div class="num">${avgAll}/5</div><div class="lbl">Score moyen pitch</div></div>
+        <div class="stat-card"><div class="num">${activeJuniors.filter(j=>jrWindowDonsTotal(j)>=DONS_OBJECTIF).length}</div><div class="lbl">JR à l'objectif (${DONS_OBJECTIF} dons/6j)</div></div>
+        <div class="stat-card"><div class="num">${activeJuniors.filter(j=>j.decision==='recruteur').length}</div><div class="lbl">Recrutés</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-wrap"><h4>Total des dons par JR sur les 6 derniers jours (objectif ${DONS_OBJECTIF} pour passer recruteur)</h4><canvas id="mgrDonsChart"></canvas></div>
+        <div class="chart-wrap"><h4>Répartition des décisions finales</h4><canvas id="mgrDecisionChart"></canvas></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <strong style="font-size:13.5px;">${showArchived ? 'Tous les Junior Recruteurs (dont archivés)' : 'Junior Recruteurs actifs'}</strong>
+        ${archivedJuniors.length ? `<button type="button" id="toggleArchivedBtn" style="border:1.5px solid var(--border);background:#fff;color:var(--primary-dark);font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:16px;cursor:pointer;">${showArchived ? '👁️ Masquer les archivés' : `🗄️ Afficher les archivés (${archivedJuniors.length})`}</button>` : ''}
+      </div>
+      <div id="jrTable"></div>
+      `}
+    </div>`;
+}
+
+function renderDashboardWidgets(){
+  const allJuniors = Object.values(DATA.juniors);
+  if(!allJuniors.length) return;
+  const activeJuniors = allJuniors.filter(j=>!j.archived);
+
+  const donsCtx = document.getElementById('mgrDonsChart');
+  if(donsCtx){
+    if(donsChart) donsChart.destroy();
+    donsChart = new Chart(donsCtx, {
+      data:{ labels: activeJuniors.map(j=>j.name), datasets:[
+        {type:'bar', label:'Total dons (6j)', data: activeJuniors.map(j=>jrWindowDonsTotal(j)), backgroundColor:'#6C5CE7', borderRadius:6},
+        {type:'line', label:'Objectif recruteur', data: activeJuniors.map(()=>DONS_OBJECTIF), borderColor:'#FF6B9D', borderDash:[6,6], pointRadius:0}
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:10, font:{size:10}}}}, scales:{y:{beginAtZero:true}} }
+    });
+  }
+  const decCtx = document.getElementById('mgrDecisionChart');
+  if(decCtx){
+    if(decisionChart) decisionChart.destroy();
+    const counts = {recruteur:0, prolongation:0, fired:0, 'en cours':0};
+    activeJuniors.forEach(j=>{ if(j.decision) counts[j.decision]++; else counts['en cours']++; });
+    decisionChart = new Chart(decCtx, {
+      type:'doughnut',
+      data:{ labels:['Recruteur','Prolongation','Fired','En cours'], datasets:[{
+        data:[counts.recruteur, counts.prolongation, counts.fired, counts['en cours']],
+        backgroundColor:['#00B894','#FDCB6E','#FF6B6B','#dcdcf0']
+      }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{
+        legend:{position:'bottom', labels:{boxWidth:10, font:{size:10}}},
+        tooltip:{ callbacks:{ label:(ctx)=>{
+          const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+          const pct = total ? Math.round(ctx.parsed/total*100) : 0;
+          return `${ctx.label} : ${pct}% (${ctx.parsed})`;
+        } } }
+      } }
+    });
+  }
+  renderJrTable(showArchived ? allJuniors : activeJuniors);
+}
+
+function renderJrTable(juniors){
+  const el = document.getElementById('jrTable');
+  if(!el) return;
+  el.innerHTML = '';
+  const rows = juniors.map(j=>{
+    const day = jrProgressDay(j);
+    return [
+      j.archived ? j.name+' (archivé)' : j.name,
+      `J${day}/${j.maxDay}`,
+      jrAvgScore(j).toFixed(1),
+      jrWindowDonsTotal(j),
+      j.decision ? j.decision.toUpperCase() : 'En cours',
+      j.pin || '—',
+      j.id
+    ];
+  });
+  grid = new gridjs.Grid({
+    columns: ['JR','Progression','Score moyen','Dons (6j)','Décision','Code JR', {name:'', formatter:(cell)=> gridjs.html(`<button class="view-btn" data-open="${cell}">Voir</button>`)}],
+    data: rows,
+    sort: true,
+    search: true,
+    pagination: { limit: 8 },
+    className: { table:'gridjs-table' }
+  }).render(el);
+  /* délégation d'événement : les lignes sont ré-affichées par gridjs à chaque page/tri/recherche,
+     donc on écoute sur le conteneur (qui lui reste stable) plutôt que sur chaque bouton */
+  el.onclick = (e)=>{
+    const btn = e.target.closest('[data-open]');
+    if(!btn) return;
+    currentJrId = btn.dataset.open; view='detail'; currentDayTab=0; renderAll();
+  };
+}
+
+function bindListEvents(){
+  const btn = document.getElementById('btnNewJr');
+  if(btn) btn.onclick = openNewJrModal;
+  const toggleBtn = document.getElementById('toggleArchivedBtn');
+  if(toggleBtn) toggleBtn.onclick = ()=>{ showArchived = !showArchived; renderAll(); };
+}
+
+function openNewJrModal(){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Nouveau Junior Recruteur</h3>
+      <p>Crée un nouveau suivi de formation.</p>
+      <div class="field"><label>Nom du JR</label><input type="text" id="njName" placeholder="Ex: Lucas Martin"></div>
+      <div class="actions">
+        <button class="cancel" id="njCancel">Annuler</button>
+        <button class="confirm" id="njConfirm">Créer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#njCancel').onclick = ()=> overlay.remove();
+  overlay.querySelector('#njConfirm').onclick = ()=>{
+    const name = overlay.querySelector('#njName').value.trim();
+    if(!name){ showToast('Le nom du JR est requis'); return; }
+    const jr = emptyJunior(name);
+    DATA.juniors[jr.id] = jr;
+    overlay.remove();
+    saveLocal(jr.id);
+    currentJrId = jr.id; view='detail'; currentDayTab=0;
+    renderAll();
+    showToast('JR créé et enregistré sur cet appareil');
+  };
+}
+
+/* ---------- rendering: JR detail (day tabs) ---------- */
+function starsHtml(jrId, dayN, critKey, value){
+  let html = '<div class="stars">';
+  for(let i=1;i<=5;i++) html += `<button type="button" class="star-btn ${i<=value?'filled':''}" data-crit="${critKey}" data-val="${i}">${i<=value?'★':'☆'}</button>`;
+  return html + '</div>';
+}
+function debriefColHtml(items, field, title, icon, cls){
+  const rows = items.map((val,idx)=>`
+    <div class="debrief-item">
+      <input type="text" value="${escapeHtml(val)}" data-field="${field}" data-idx="${idx}" placeholder="Écris ici...">
+      <button type="button" class="rm" data-field="${field}" data-idx="${idx}">✕</button>
+    </div>`).join('');
+  return `<div class="debrief-col ${cls}"><h4>${icon} ${title}</h4>${rows}<button type="button" class="add-item" data-field="${field}">+ Ajouter</button></div>`;
+}
+
+function detailHtml(){
+  const jr = DATA.juniors[currentJrId];
+  const dayNums = jrDayNumbers(jr);
+  const tabsHtml = ['<span data-n="0">★</span>'].concat(dayNums.map(n=>'J'+n)).map((_,i)=>{
+    const n = i===0 ? 0 : dayNums[i-1];
+    const title = i===0 ? "Vue d'ensemble" : dayTitle(n);
+    const short = i===0 ? 'Bilan' : 'J'+n;
+    const active = currentDayTab===n ? 'active':'';
+    let badge = '';
+    if(n>0){ const p = jr.days[n].pret; if(p==='oui') badge='<span class="tab-badge">✓</span>'; else if(p==='non') badge='<span class="tab-badge non">!</span>'; }
+    return `<button class="tab-btn ${active}" data-tab="${n}">${badge}<span class="tab-num">${n===0?'★':short}</span><span class="tab-label">${title}</span></button>`;
+  }).join('') + `<button type="button" class="tab-add" id="addDayBtn" title="Ajouter un jour supplémentaire">+</button>`;
+
+  const panelInner = currentDayTab===0 ? overviewPanel(jr) : dayPanel(jr, currentDayTab);
+
+  return `
+    <button class="back-btn" id="backBtn">← Retour à la liste</button>
+    <nav class="tabs">${tabsHtml}</nav>
+    <div class="panel">${panelInner}</div>
+  `;
+}
+
+function overviewPanel(jr){
+  const dayNums = jrDayNumbers(jr);
+  const statusRows = dayNums.map(n=>{
+    const day = jr.days[n];
+    const dotCls = day.pret==='oui'?'oui':day.pret==='non'?'non':'';
+    return `<li style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="font-weight:700;color:var(--primary-dark);min-width:26px;">J${n}</span>
+      <span class="status-dot ${dotCls}" style="width:8px;height:8px;border-radius:50%;background:${dotCls==='oui'?'var(--success)':dotCls==='non'?'var(--danger)':'#dcdce8'};"></span>
+      <span style="color:var(--muted);flex:1;">${day.assoc? escapeHtml(day.assoc)+(day.teamLeader?' · Team leader : '+escapeHtml(day.teamLeader):'') : 'Non renseigné'}</span>
+      <span style="color:var(--primary-dark);font-weight:700;font-size:12px;">${day.dons!==""&&day.dons!=null? day.dons+' dons':''}</span>
+    </li>`;
+  }).join('');
+  return `
+    <div class="panel-head">
+      <div><h2>${escapeHtml(jr.name)} — Vue d'ensemble ${jr.archived ? '<span class="badge fired" style="margin-left:6px;">ARCHIVÉ</span>' : ''}</h2><p>Code JR : <strong>${jr.pin || 'pas encore créé'}</strong></p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="local-actions" id="editJrBtn" style="border:1.5px solid var(--border);background:#fff;color:var(--primary-dark);font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;cursor:pointer;">✏️ Modifier</button>
+        <button type="button" id="archiveJrBtn" style="border:1.5px solid #ffe6b3;background:#fffaf0;color:#a9791b;font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;cursor:pointer;">${jr.archived ? '♻️ Réactiver' : '📦 Archiver'}</button>
+        <button type="button" id="deleteJrBtn" style="border:1.5px solid #ffd9d9;background:#fff5f5;color:var(--danger);font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;cursor:pointer;">🗑️ Supprimer</button>
+      </div>
+    </div>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="num">${jrProgressDay(jr)}/${jr.maxDay}</div><div class="lbl">Jours complétés</div></div>
+      <div class="stat-card"><div class="num">${jrAvgScore(jr).toFixed(1)}/5</div><div class="lbl">Score moyen pitch</div></div>
+      <div class="stat-card"><div class="num">${jrWindowDonsTotal(jr)}/${DONS_OBJECTIF}</div><div class="lbl">Dons cumulés (6 derniers jours)</div></div>
+      <div class="stat-card"><div class="num">${jr.decision? jr.decision.toUpperCase() : '—'}</div><div class="lbl">Décision finale</div></div>
+    </div>
+    <div class="dons-box" style="margin-bottom:18px;">
+      <div class="dons-row"><label>Progression vers l'objectif recruteur</label><span style="font-weight:700;color:var(--primary-dark);">${jrWindowDonsTotal(jr)} / ${DONS_OBJECTIF} dons</span></div>
+      <div class="dons-track"><div class="dons-fill" style="width:${Math.min(100, jrWindowDonsTotal(jr)/DONS_OBJECTIF*100)}%;background:${jrWindowDonsTotal(jr)>=DONS_OBJECTIF? 'linear-gradient(90deg,#00B894,#00d9a3)' : 'linear-gradient(90deg,var(--primary),var(--accent))'};"></div></div>
+      <div class="dons-target">Total des dons sur les 6 derniers jours — objectif ${DONS_OBJECTIF} pour passer recruteur</div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-wrap"><h4>Score moyen par jour (6 derniers jours)</h4><canvas id="jrScoreChart"></canvas></div>
+      <div class="chart-wrap" style="height:260px;">
+        <h4>Dons par jour (6 derniers jours)</h4>
+        <canvas id="jrDonsChart"></canvas>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;">🟢 3 dons ou + · 🟡 2 dons · 🔴 0-1 don</div>
+      </div>
+    </div>
+    <div class="section-title" style="margin-top:6px;">Statut par jour</div>
+    <ul style="list-style:none;margin:0;padding:0;">${statusRows}</ul>
+  `;
+}
+
+function renderJrCharts(){
+  const jr = DATA.juniors[currentJrId];
+  if(!jr) return;
+  const scoreCtx = document.getElementById('jrScoreChart');
+  const donsCtx = document.getElementById('jrDonsChart');
+  if(!scoreCtx || !donsCtx) return;
+  const windowDays = jrWindowDays(jr);
+  if(scoreChart) scoreChart.destroy();
+  scoreChart = new Chart(scoreCtx, {
+    type:'line',
+    data:{ labels: windowDays.map(n=>'J'+n), datasets:[
+      {label:'Score', data: windowDays.map(n=>+avgScore(jr.days[n]).toFixed(2)), borderColor:'#6C5CE7', backgroundColor:'rgba(108,92,231,0.15)', tension:.35, fill:true}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true, max:5}}, plugins:{legend:{display:false}} }
+  });
+  if(donsChart) donsChart.destroy();
+  const daily = windowDays.map(n=>parseInt(jr.days[n].dons)||0);
+  const barColors = daily.map(d=>donsDayColor(d));
+  donsChart = new Chart(donsCtx, {
+    type:'bar',
+    data:{ labels: windowDays.map(n=>'J'+n), datasets:[
+      {label:'Dons du jour', data: daily, backgroundColor: barColors, borderRadius:6}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}}, plugins:{legend:{display:false}} }
+  });
+}
+
+function dayPanel(jr, n){
+  const day = jr.days[n];
+  const isFinal = n === jr.maxDay;
+  const assocOptionsHtml = `<option value="">— Choisir —</option>` + ASSOC_OPTIONS.map(a=>`<option value="${escapeHtml(a)}" ${day.assoc===a?'selected':''}>${escapeHtml(a)}</option>`).join('');
+  return `
+    <div class="panel-head">
+      <div><h2>${escapeHtml(jr.name)} — J${n} : ${dayTitle(n)}</h2><p>${isFinal? 'Bilan final du parcours' : 'Check control, entraînement au pitch et debrief'}</p></div>
+    </div>
+    <div class="section">
+      <div class="section-title">📋 Check control</div>
+      <div class="grid2">
+        <div class="field"><label>Team leader du JR</label><input type="text" value="${escapeHtml(day.teamLeader)}" data-field="teamLeader" placeholder="Nom du team leader"></div>
+        <div class="field"><label>ONG / Association du jour</label><select data-field="assoc">${assocOptionsHtml}</select></div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label>Objectif du jour</label><input type="text" value="${escapeHtml(day.objectif)}" data-field="objectif" placeholder="Objectif de la journée"></div>
+      <div class="dons-box" style="margin-top:14px;">
+        <div class="dons-row"><label>Nombre de dons faits ce jour-là</label><input type="text" inputmode="numeric" value="${escapeHtml(day.dons)}" data-field="dons" placeholder="0"></div>
+        <div class="dons-target">Le total des 6 derniers jours compte pour l'objectif recruteur (${DONS_OBJECTIF} dons) — visible dans l'onglet Bilan.</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">🎤 Pitch training <span class="score-pill">moyenne ${avgScore(day).toFixed(1)}/5</span></div>
+      <table class="pitch-table">${CRITERIA.map(c=>`<tr><td style="width:110px;">${c.label}</td><td>${starsHtml(jr.id,n,c.key,day.scores[c.key])}</td></tr>`).join('')}</table>
+    </div>
+    <div class="section">
+      <div class="section-title">📝 Notes</div>
+      <div class="field"><textarea rows="2" data-field="notes" placeholder="Notes libres...">${escapeHtml(day.notes)}</textarea></div>
+    </div>
+    <div class="section">
+      <div class="section-title">💬 Debrief de la journée</div>
+      <div class="debrief-cols">
+        ${debriefColHtml(day.positive,'positive',"Ce qui a bien été",'➕','positive')}
+        ${debriefColHtml(day.negative,'negative',"Ce qui n'a pas été",'➖','negative')}
+        ${debriefColHtml(day.improvements,'improvements',"Améliorations attendues",'●','improve')}
+      </div>
+      <div class="field" style="margin-top:14px;"><label>Notes supplémentaires</label><textarea rows="2" data-field="notesSupp" placeholder="Autre chose à noter ?">${escapeHtml(day.notesSupp)}</textarea></div>
+    </div>
+    <div class="section" style="margin-bottom:${isFinal?'22px':'0'};">
+      <div class="section-title">✅ Prêt pour le prochain shift ?</div>
+      <div class="toggle-btns">
+        <button type="button" class="toggle-btn oui ${day.pret==='oui'?'active':''}" data-pret="oui">OUI</button>
+        <button type="button" class="toggle-btn non ${day.pret==='non'?'active':''}" data-pret="non">NON</button>
+      </div>
+    </div>
+    ${isFinal ? `
+    <div class="section" style="margin-bottom:0;">
+      <div class="final-box"><h3>🏁 Décision finale</h3>
+        <div class="final-btns">
+          <button type="button" class="final-btn recruteur ${jr.decision==='recruteur'?'active':''}" data-decision="recruteur">RECRUTEUR</button>
+          <button type="button" class="final-btn prolongation ${jr.decision==='prolongation'?'active':''}" data-decision="prolongation">PROLONGATION</button>
+          <button type="button" class="final-btn fired ${jr.decision==='fired'?'active':''}" data-decision="fired">FIRED</button>
+        </div>
+      </div>
+    </div>` : ''}
+  `;
+}
+
+function openEditJrModal(jr){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Modifier ${escapeHtml(jr.name)}</h3>
+      <div class="field"><label>Nom du JR</label><input type="text" id="ejName" value="${escapeHtml(jr.name)}"></div>
+      <div class="field"><label>Code JR (le JR s'en sert pour se connecter)</label><input type="text" id="ejPin" value="${escapeHtml(jr.pin||'')}" placeholder="Ex: 4821"></div>
+      <div class="actions">
+        <button class="cancel" id="ejCancel">Annuler</button>
+        <button class="confirm" id="ejConfirm">Enregistrer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#ejCancel').onclick = ()=> overlay.remove();
+  overlay.querySelector('#ejConfirm').onclick = ()=>{
+    const name = overlay.querySelector('#ejName').value.trim();
+    const pin = overlay.querySelector('#ejPin').value.trim();
+    if(!name){ showToast('Le nom du JR est requis'); return; }
+    jr.name = name; jr.pin = pin || null;
+    saveLocal(jr.id);
+    overlay.remove();
+    renderAll();
+    showToast('Profil mis à jour');
+  };
+}
+
+function openDeleteJrModal(jr){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Supprimer ${escapeHtml(jr.name)} ?</h3>
+      <p>Toutes les données de ce JR (jours, notes, dons, décision) seront définitivement supprimées de cet appareil. Cette action est irréversible.</p>
+      <div class="actions">
+        <button class="cancel" id="djCancel">Annuler</button>
+        <button class="confirm" id="djConfirm" style="background:var(--danger);">Supprimer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#djCancel').onclick = ()=> overlay.remove();
+  overlay.querySelector('#djConfirm').onclick = ()=>{
+    deleteJr(jr.id);
+    overlay.remove();
+    view = 'list'; currentJrId = null;
+    renderAll();
+    showToast(`${jr.name} supprimé`);
+  };
+}
+
+function bindDetailEvents(){
+  document.getElementById('backBtn').onclick = ()=>{ view='list'; currentJrId=null; renderAll(); };
+  document.querySelectorAll('[data-tab]').forEach(b=> b.onclick = ()=>{ currentDayTab = parseInt(b.dataset.tab); renderAll(); });
+
+  const jr = DATA.juniors[currentJrId];
+  if(!jr) return;
+
+  const editBtn = document.getElementById('editJrBtn');
+  if(editBtn) editBtn.onclick = ()=> openEditJrModal(jr);
+  const archiveBtn = document.getElementById('archiveJrBtn');
+  if(archiveBtn) archiveBtn.onclick = ()=>{
+    jr.archived = !jr.archived;
+    saveLocal(jr.id);
+    renderAll();
+    showToast(jr.archived ? `${jr.name} archivé — il/elle pourra être réactivé(e) plus tard` : `${jr.name} réactivé`);
+  };
+  const deleteBtn = document.getElementById('deleteJrBtn');
+  if(deleteBtn) deleteBtn.onclick = ()=> openDeleteJrModal(jr);
+
+  const addBtn = document.getElementById('addDayBtn');
+  if(addBtn){
+    addBtn.onclick = ()=>{
+      jr.maxDay += 1;
+      jr.days[jr.maxDay] = emptyDay();
+      saveLocal(jr.id);
+      currentDayTab = jr.maxDay;
+      renderAll();
+      showToast(`Jour J${jr.maxDay} ajouté`);
+    };
+  }
+
+  if(currentDayTab===0) return;
+  const day = jr.days[currentDayTab];
+
+  document.querySelectorAll('.star-btn').forEach(s=>{
+    s.onclick = ()=>{
+      const crit = s.dataset.crit, val = parseInt(s.dataset.val);
+      day.scores[crit] = (day.scores[crit]===val) ? 0 : val;
+      saveLocal(jr.id);
+      renderAll();
+    };
+  });
+  document.querySelectorAll('[data-pret]').forEach(b=>{
+    b.onclick = ()=>{ day.pret = (day.pret===b.dataset.pret) ? null : b.dataset.pret; saveLocal(jr.id); renderAll(); };
+  });
+  document.querySelectorAll('[data-decision]').forEach(b=>{
+    b.onclick = ()=>{ jr.decision = (jr.decision===b.dataset.decision) ? null : b.dataset.decision; saveLocal(jr.id); renderAll(); };
+  });
+  document.querySelectorAll('.add-item').forEach(b=>{
+    b.onclick = ()=>{ day[b.dataset.field].push(""); saveLocal(jr.id); renderAll(); };
+  });
+  document.querySelectorAll('.rm').forEach(b=>{
+    b.onclick = ()=>{
+      const f = b.dataset.field, idx = parseInt(b.dataset.idx);
+      day[f].splice(idx,1); if(day[f].length===0) day[f].push("");
+      saveLocal(jr.id); renderAll();
+    };
+  });
+  document.querySelectorAll('input[data-field], textarea[data-field], select[data-field]').forEach(inp=>{
+    const evt = inp.tagName==='SELECT' ? 'onchange' : 'oninput';
+    inp[evt] = ()=>{
+      const f = inp.dataset.field;
+      if(f==='teamLeader'||f==='assoc'||f==='objectif'||f==='notes'||f==='notesSupp'||f==='dons'){
+        day[f] = inp.value;
+        saveLocal(jr.id);
+      }
+    };
+  });
+  document.querySelectorAll('.debrief-item input').forEach(inp=>{
+    inp.oninput = ()=>{ day[inp.dataset.field][parseInt(inp.dataset.idx)] = inp.value; saveLocal(jr.id); };
+  });
+}
+
+/* ---------- init ---------- */
+(function init(){
+  const heroSub = document.getElementById('heroSub');
+  if(heroSub){
+    heroSub.textContent = FIREBASE_ENABLED
+      ? "Suivi de plusieurs Junior Recruteurs — synchronisé en temps réel entre tous les appareils connectés."
+      : "Suivi de plusieurs Junior Recruteurs. Sauvegardé automatiquement sur cet appareil — utilise Exporter / Importer pour partager entre captains et managers.";
+  }
+  identity = loadIdentity();
+  if(identity && !identity.role) identity.role = 'staff'; // anciens profils = accès complet
+  const loaded = loadLocal();
+  if(loaded){ DATA = loaded; DATA.juniors = DATA.juniors || {}; }
+  migrateData();
+  renderIdentityBox();
+  updateStatusBar();
+  renderAll();
+  if(!identity) openIdentityModal(false);
+  if(FIREBASE_ENABLED){
+    firebase.auth().signInAnonymously().then(()=>{
+      startRealtimeSync();
+    }).catch(err=>{
+      console.error(err);
+      showToast('Connexion au serveur impossible — vérifie ta connexion internet');
+    });
+  }
+})();
+</script>
+</body>
+</html>
