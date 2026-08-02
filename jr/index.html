@@ -358,8 +358,13 @@ function renderIdentityBox(){
 }
 
 function openIdentityModal(isEdit){
+  /* évite d'empiler plusieurs fois la même modale (ex: renderAll() appelé plusieurs fois
+     avant que l'identité soit choisie) — sans ce garde-fou, il fallait parfois valider
+     le mot de passe 2-3 fois car plusieurs modales identiques étaient superposées. */
+  if(document.querySelector('.modal-overlay[data-kind="identity"]')) return;
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
+  overlay.dataset.kind = 'identity';
   let step = (isEdit && identity) ? (identity.role==='jr' ? 'jrSelect' : 'staffForm') : 'role';
   let chosenRole = identity ? identity.role : null;
   let selectedJrId = (identity && identity.role==='jr') ? identity.jrId : null;
@@ -699,7 +704,7 @@ function jrDebriefDayHtml(jr, n){
       <div class="debrief-cols">
         <div class="debrief-col positive"><h4>➕ Ce qui a bien été</h4>${jrDebriefListHtml(day.positive)}</div>
         <div class="debrief-col negative"><h4>➖ Ce qui n'a pas été</h4>${jrDebriefListHtml(day.negative)}</div>
-        <div class="debrief-col improve"><h4>● Améliorations attendues</h4>${jrDebriefListHtml(day.improvements)}</div>
+        <div class="debrief-col improve"><h4>● Plan d'action</h4>${jrDebriefListHtml(day.improvements)}</div>
       </div>
     </div>`;
 }
@@ -764,7 +769,7 @@ function dashboardHtml(){
         <div class="stat-card"><div class="num">${activeJuniors.length}</div><div class="lbl">JR suivis</div></div>
         <div class="stat-card"><div class="num">${avgAll}/5</div><div class="lbl">Score moyen pitch</div></div>
         <div class="stat-card"><div class="num">${activeJuniors.filter(j=>jrWindowDonsTotal(j)>=DONS_OBJECTIF).length}</div><div class="lbl">JR à l'objectif (${DONS_OBJECTIF} dons/6j)</div></div>
-        <div class="stat-card"><div class="num">${activeJuniors.filter(j=>j.decision==='recruteur').length}</div><div class="lbl">Recrutés</div></div>
+        <div class="stat-card"><div class="num">${allJuniors.filter(j=>j.decision==='recruteur').length}</div><div class="lbl">Recrutés</div></div>
       </div>
       <div class="charts-row">
         <div class="chart-wrap"><h4>Total des dons par JR sur les 6 derniers jours (objectif ${DONS_OBJECTIF} pour passer recruteur)</h4><canvas id="mgrDonsChart"></canvas></div>
@@ -799,7 +804,7 @@ function renderDashboardWidgets(){
   if(decCtx){
     if(decisionChart) decisionChart.destroy();
     const counts = {recruteur:0, prolongation:0, fired:0, 'en cours':0};
-    activeJuniors.forEach(j=>{ if(j.decision) counts[j.decision]++; else counts['en cours']++; });
+    allJuniors.forEach(j=>{ if(j.decision) counts[j.decision]++; else counts['en cours']++; });
     decisionChart = new Chart(decCtx, {
       type:'doughnut',
       data:{ labels:['Recruteur','Prolongation','Fired','En cours'], datasets:[{
@@ -1029,7 +1034,7 @@ function dayPanel(jr, n){
       <div class="debrief-cols">
         ${debriefColHtml(day.positive,'positive',"Ce qui a bien été",'➕','positive')}
         ${debriefColHtml(day.negative,'negative',"Ce qui n'a pas été",'➖','negative')}
-        ${debriefColHtml(day.improvements,'improvements',"Améliorations attendues",'●','improve')}
+        ${debriefColHtml(day.improvements,'improvements',"Plan d'action",'●','improve')}
       </div>
       <div class="field" style="margin-top:14px;"><label>Notes supplémentaires</label><textarea rows="2" data-field="notesSupp" placeholder="Autre chose à noter ?">${escapeHtml(day.notesSupp)}</textarea></div>
     </div>
@@ -1192,7 +1197,6 @@ function bindDetailEvents(){
   renderIdentityBox();
   updateStatusBar();
   renderAll();
-  if(!identity) openIdentityModal(false);
   if(FIREBASE_ENABLED){
     firebase.auth().signInAnonymously().then(()=>{
       startRealtimeSync();
