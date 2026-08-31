@@ -286,7 +286,7 @@ function emptyDay(){
 function emptyJunior(name){
   const days = {};
   for(let n=1;n<=6;n++) days[n] = emptyDay();
-  return {id: uid(), name, createdAt: new Date().toISOString(), maxDay: 6, decision: null, pin: null, archived: false, days};
+  return {id: uid(), name, createdAt: new Date().toISOString(), maxDay: 6, decision: null, pin: null, archived: false, photo: null, bio: "", hiredBy: "", trainedBy: "", days};
 }
 function jrDayNumbers(jr){
   const nums = [];
@@ -330,6 +330,10 @@ function migrateData(){
     if(jr.pin === undefined) jr.pin = jr.pinHash ? null : null;
     if(jr.pinHash !== undefined) delete jr.pinHash;
     if(jr.archived === undefined) jr.archived = false;
+    if(jr.photo === undefined) jr.photo = null;
+    if(jr.bio === undefined) jr.bio = "";
+    if(jr.hiredBy === undefined) jr.hiredBy = "";
+    if(jr.trainedBy === undefined) jr.trainedBy = "";
     if(jr.captain !== undefined) delete jr.captain;
     for(let n=1;n<=jr.maxDay;n++){
       if(!jr.days[n]) jr.days[n] = emptyDay();
@@ -950,6 +954,22 @@ function overviewPanel(jr){
         <button type="button" id="deleteJrBtn" style="border:1.5px solid #ffd9d9;background:#fff5f5;color:var(--danger);font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;cursor:pointer;">🗑️ Supprimer</button>
       </div>
     </div>
+    <div class="profile-card" style="display:flex;gap:16px;align-items:flex-start;background:#fbfbfe;border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:18px;">
+      <div style="flex-shrink:0;width:76px;height:76px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:24px;">
+        ${jr.photo ? `<img src="${jr.photo}" alt="${escapeHtml(jr.name)}" style="width:100%;height:100%;object-fit:cover;display:block;">` : escapeHtml((jr.name||'?').trim().charAt(0).toUpperCase())}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+          <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;">Profil</span>
+          <button type="button" id="editProfileBtn" style="border:1.5px solid var(--border);background:#fff;color:var(--primary-dark);font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;cursor:pointer;">✏️ Personnaliser</button>
+        </div>
+        <p style="margin:0 0 8px;font-size:13px;color:${jr.bio ? 'var(--primary-dark)' : 'var(--muted)'};">${jr.bio ? escapeHtml(jr.bio) : 'Aucune description pour le moment.'}</p>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);">
+          <span>👤 Recruté par : <strong style="color:var(--primary-dark);">${jr.hiredBy ? escapeHtml(jr.hiredBy) : '—'}</strong></span>
+          <span>🎓 Formé par : <strong style="color:var(--primary-dark);">${jr.trainedBy ? escapeHtml(jr.trainedBy) : '—'}</strong></span>
+        </div>
+      </div>
+    </div>
     <div class="stat-cards">
       <div class="stat-card"><div class="num">${jrProgressDay(jr)}/${jr.maxDay}</div><div class="lbl">Jours complétés</div></div>
       <div class="stat-card"><div class="num">${jrAvgScore(jr).toFixed(1)}/5</div><div class="lbl">Score moyen pitch</div></div>
@@ -1085,6 +1105,88 @@ function openEditJrModal(jr){
   };
 }
 
+function resizePhotoFile(file, cb){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const size = 400;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const scale = Math.max(size/img.width, size/img.height);
+      const w = img.width*scale, h = img.height*scale;
+      ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = ()=> showToast("Impossible de lire cette image");
+    img.src = reader.result;
+  };
+  reader.onerror = ()=> showToast("Impossible de lire ce fichier");
+  reader.readAsDataURL(file);
+}
+
+function openProfileModal(jr){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  let pendingPhoto = jr.photo || null;
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Personnaliser le profil de ${escapeHtml(jr.name)}</h3>
+      <div class="field">
+        <label>Photo</label>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div id="pmPhotoPreview" style="flex-shrink:0;width:64px;height:64px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;">
+            ${jr.photo ? `<img src="${jr.photo}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">` : escapeHtml((jr.name||'?').trim().charAt(0).toUpperCase())}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <input type="file" id="pmPhotoInput" accept="image/*" style="font-size:12px;">
+            ${jr.photo ? `<button type="button" id="pmPhotoRemove" style="border:none;background:none;color:var(--danger);font-size:12px;font-weight:700;cursor:pointer;padding:0;text-align:left;">Retirer la photo</button>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="field"><label>À propos</label><textarea rows="3" id="pmBio" placeholder="Quelques mots sur ce JR...">${escapeHtml(jr.bio||'')}</textarea></div>
+      <div class="field"><label>Recruté par</label><input type="text" id="pmHiredBy" value="${escapeHtml(jr.hiredBy||'')}" placeholder="Nom de la personne qui l'a embauché"></div>
+      <div class="field"><label>Formé par</label><input type="text" id="pmTrainedBy" value="${escapeHtml(jr.trainedBy||'')}" placeholder="Nom de la personne qui l'a formé"></div>
+      <div class="actions">
+        <button class="cancel" id="pmCancel">Annuler</button>
+        <button class="confirm" id="pmConfirm">Enregistrer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const preview = overlay.querySelector('#pmPhotoPreview');
+  const fileInput = overlay.querySelector('#pmPhotoInput');
+  fileInput.onchange = ()=>{
+    const file = fileInput.files[0];
+    if(!file) return;
+    resizePhotoFile(file, dataUrl=>{
+      pendingPhoto = dataUrl;
+      preview.innerHTML = `<img src="${dataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+    });
+  };
+  const removeBtn = overlay.querySelector('#pmPhotoRemove');
+  if(removeBtn){
+    removeBtn.onclick = ()=>{
+      pendingPhoto = null;
+      preview.innerHTML = escapeHtml((jr.name||'?').trim().charAt(0).toUpperCase());
+      removeBtn.remove();
+    };
+  }
+
+  overlay.querySelector('#pmCancel').onclick = ()=> overlay.remove();
+  overlay.querySelector('#pmConfirm').onclick = ()=>{
+    jr.photo = pendingPhoto;
+    jr.bio = overlay.querySelector('#pmBio').value.trim();
+    jr.hiredBy = overlay.querySelector('#pmHiredBy').value.trim();
+    jr.trainedBy = overlay.querySelector('#pmTrainedBy').value.trim();
+    saveLocal(jr.id);
+    overlay.remove();
+    renderAll();
+    showToast('Profil personnalisé mis à jour');
+  };
+}
+
 function openDeleteJrModal(jr){
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -1117,6 +1219,8 @@ function bindDetailEvents(){
 
   const editBtn = document.getElementById('editJrBtn');
   if(editBtn) editBtn.onclick = ()=> openEditJrModal(jr);
+  const editProfileBtn = document.getElementById('editProfileBtn');
+  if(editProfileBtn) editProfileBtn.onclick = ()=> openProfileModal(jr);
   const archiveBtn = document.getElementById('archiveJrBtn');
   if(archiveBtn) archiveBtn.onclick = ()=>{
     jr.archived = !jr.archived;
