@@ -223,6 +223,13 @@ const CRITERIA = [
 ];
 const ASSOC_OPTIONS = ["Croix-Rouge","Oxfam","WWF","Amnesty International","Fondation Contre le Cancer","Médecins du Monde"];
 
+/* ---------- Récap IA (debriefs -> mini récap pour le prochain team leader) ----------
+   Appelle un petit relais côté serveur (VPS) qui garde la clé Anthropic côté serveur —
+   jamais exposée ici. ATLAS_RECAP_KEY n'est pas un secret sensible : il sert juste à éviter
+   les appels anonymes depuis l'extérieur, pas à protéger des données confidentielles. */
+const ATLAS_RECAP_URL = 'https://push.lucinesmets.com/atlas/recap';
+const ATLAS_RECAP_KEY = '6487d295d5f98a30ee71f4a1b22aa19ba5bf169baddb169e';
+
 /* identifiant commun a tous les managers/captains (pas de prenom individuel) */
 const STAFF_ID = 'MGMT';
 const STAFF_PASSWORD = 'ATLAS2026';
@@ -962,6 +969,7 @@ function overviewPanel(jr){
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
           <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;">Profil</span>
           <button type="button" id="editProfileBtn" style="border:1.5px solid var(--border);background:#fff;color:var(--primary-dark);font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;cursor:pointer;">✏️ Personnaliser</button>
+          <button type="button" id="genRecapBtn" style="border:1.5px solid var(--border);background:#fff;color:var(--primary-dark);font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;cursor:pointer;">🤖 Récap IA</button>
         </div>
         <p style="margin:0 0 8px;font-size:13px;color:${jr.bio ? 'var(--primary-dark)' : 'var(--muted)'};">${jr.bio ? escapeHtml(jr.bio) : 'Aucune description pour le moment.'}</p>
         <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);">
@@ -1187,6 +1195,64 @@ function openProfileModal(jr){
   };
 }
 
+/* rassemble les retours de debrief (positif / à améliorer / plan d'action) de tous les jours
+   d'un JR, avec le numéro de jour et le nombre de jours d'écart avec le jour le plus récent
+   (daysAgo=0 = le plus récent). L'IA se sert de daysAgo + de la catégorie pour prioriser le
+   feedback le plus récent et le plus "à valeur" (à améliorer / plan d'action) dans le récap. */
+function gatherDebriefEntries(jr){
+  const dayNums = jrDayNumbers(jr);
+  if(!dayNums.length) return [];
+  const maxN = Math.max(...dayNums);
+  const entries = [];
+  dayNums.forEach(n=>{
+    const day = jr.days[n];
+    const daysAgo = maxN - n;
+    (day.positive||[]).forEach(v=>{ if(v && v.trim()) entries.push({day:n, daysAgo, category:'positif', text:v.trim()}); });
+    (day.negative||[]).forEach(v=>{ if(v && v.trim()) entries.push({day:n, daysAgo, category:'à améliorer', text:v.trim()}); });
+    (day.improvements||[]).forEach(v=>{ if(v && v.trim()) entries.push({day:n, daysAgo, category:"plan d'action", text:v.trim()}); });
+  });
+  return entries;
+}
+
+function openRecapModal(jr){
+  const entries = gatherDebriefEntries(jr);
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:460px;">
+      <h3>🤖 Récap IA — ${escapeHtml(jr.name)}</h3>
+      <p>Pour briefer le team leader de la prochaine session, généré à partir des debriefs (priorité au plus récent et au plus important).</p>
+      <div id="recapBody" style="font-size:13.5px;color:var(--text);line-height:1.55;min-height:50px;background:#fbfbfe;border:1.5px solid var(--border);border-radius:10px;padding:12px;white-space:pre-wrap;">${entries.length ? 'Génération en cours…' : 'Pas encore de feedback de debrief enregistré pour ce JR.'}</div>
+      <div class="actions">
+        <button class="cancel" id="recapClose">Fermer</button>
+        <button class="confirm" id="recapCopy" style="display:none;">📋 Copier</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#recapClose').onclick = ()=> overlay.remove();
+  if(!entries.length) return;
+  const body = overlay.querySelector('#recapBody');
+  const copyBtn = overlay.querySelector('#recapCopy');
+  fetch(ATLAS_RECAP_URL, {
+    method:'POST',
+    headers:{'Authorization':'Bearer '+ATLAS_RECAP_KEY, 'Content-Type':'application/json'},
+    body: JSON.stringify({ jrName: jr.name, entries })
+  }).then(r=>r.json()).then(data=>{
+    if(data && data.recap){
+      body.textContent = data.recap;
+      copyBtn.style.display = '';
+      copyBtn.onclick = ()=>{
+        navigator.clipboard.writeText(data.recap).then(()=> showToast('Récap copié dans le presse-papier'));
+      };
+    } else {
+      body.textContent = 'Erreur : ' + ((data && data.error) || 'réponse invalide du service IA');
+    }
+  }).catch(err=>{
+    console.error(err);
+    body.textContent = "Erreur de connexion au service IA — vérifie ta connexion internet et réessaie.";
+  });
+}
+
 function openDeleteJrModal(jr){
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -1221,6 +1287,8 @@ function bindDetailEvents(){
   if(editBtn) editBtn.onclick = ()=> openEditJrModal(jr);
   const editProfileBtn = document.getElementById('editProfileBtn');
   if(editProfileBtn) editProfileBtn.onclick = ()=> openProfileModal(jr);
+  const genRecapBtn = document.getElementById('genRecapBtn');
+  if(genRecapBtn) genRecapBtn.onclick = ()=> openRecapModal(jr);
   const archiveBtn = document.getElementById('archiveJrBtn');
   if(archiveBtn) archiveBtn.onclick = ()=>{
     jr.archived = !jr.archived;
