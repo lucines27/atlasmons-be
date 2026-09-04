@@ -71,11 +71,23 @@
 
   /* ---- process ---- */
   .process-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px;}
+  .process-grid.cols-2{grid-template-columns:repeat(2,1fr);}
   @media(max-width:750px){.process-grid{grid-template-columns:1fr;}}
   .process-card{background:var(--card);border-radius:var(--radius);padding:24px 20px;text-align:center;box-shadow:0 10px 30px rgba(11,79,120,0.08);}
   .process-num{width:36px;height:36px;border-radius:50%;background:var(--deep);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;margin:0 auto 14px;}
   .process-card h4{margin:0 0 8px;font-size:14.5px;}
   .process-card p{margin:0;font-size:12px;color:var(--muted);}
+
+  /* ---- liste des formations (point 1) ---- */
+  .train-block{text-align:left;margin-top:36px;margin-bottom:18px;}
+  .train-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .train-head h4{margin:0;font-size:16px;font-weight:800;}
+  .trainlist-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:900px){.trainlist-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:600px){.trainlist-grid{grid-template-columns:1fr;}}
+  .trainlist-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:0 6px 20px rgba(11,79,120,0.06);}
+  .trainlist-card h5{margin:0 0 8px;font-size:13.5px;font-weight:800;color:var(--ocean);}
+  .trainlist-card p{margin:0;font-size:12px;color:var(--muted);line-height:1.5;}
 
   /* ---- formations ---- */
   .aidas-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:32px;}
@@ -225,12 +237,26 @@
   <div class="section-title">
     <h2>Les choses utiles à savoir…</h2>
   </div>
-  <div class="process-grid">
-    <div class="process-card">
-      <div class="process-num">1</div>
+
+  <div class="train-block">
+    <div class="train-head">
+      <div class="process-num" style="margin:0;">1</div>
       <h4>Retrouve ces formations au bureau</h4>
-      <p><span class="soon-tag">Arrive bientôt</span></p>
     </div>
+    <div class="trainlist-grid">
+      <div class="trainlist-card"><h5>Formation street</h5><p>Être performant, c'est savoir s'adapter à n'importe quelle association, n'importe quel environnement. Vous allez apprendre à capter et accrocher même les personnes les plus pressées 😈</p></div>
+      <div class="trainlist-card"><h5>Formation autorité</h5><p>Apprendre parfaitement cette balance entre autorité/sympathie, garder le contrôle, tirer les ficelles de la discussion : après cette formation personne ne pourra encore vous marcher dessus 👀</p></div>
+      <div class="trainlist-card"><h5>Formation contre-argumentation</h5><p>Objectif : ne plus rester bloqué face à un « non », mais savoir répondre, rebondir et garder le contrôle de l'échange 💯</p></div>
+      <div class="trainlist-card"><h5>Formation qualité</h5><p>Comment avoir un bon reach, peu de déchets et encore moins de crédits ? C'est ici que vous allez l'apprendre pour pouvoir aider le mieux possible les ONG's ! 🫂</p></div>
+      <div class="trainlist-card"><h5>Formation ASA</h5><p>Apprendre à augmenter le montant des donations sans faire peur à la personne, savoir comment l'amener et pourquoi nous devons le faire 💸☀️</p></div>
+      <div class="trainlist-card"><h5>Formation high potential</h5><p>Formation réservée UNIQUEMENT aux JR/R qui ont fait preuve d'implication, de volonté et d'envie d'évoluer afin de passer à l'étape suivante : Captain 🪖</p></div>
+      <div class="trainlist-card"><h5>Formation Cialdini</h5><p>Robert Cialdini, célèbre psychologue et écrivain, nous a transmis les 6 principes à suivre que tous les meilleurs vendeurs appliquent au quotidien... 🧸</p></div>
+      <div class="trainlist-card"><h5>Formation teamleading</h5><p>Savoir tirer ses teammates vers le haut s'apprend, c'est ce qu'on appelle le teamleading ! Montre l'exemple sur le terrain et amène tes teammates avec toi 🧗</p></div>
+      <div class="trainlist-card"><h5>Formation mindset</h5><p>La grande partie de ce job est dans la tête, apprends à avoir le contrôle sur ton mindset et à dépasser les sommets 🧠</p></div>
+    </div>
+  </div>
+
+  <div class="process-grid cols-2">
     <div class="process-card">
       <div class="process-num">2</div>
       <h4>Les choses utiles à savoir…</h4>
