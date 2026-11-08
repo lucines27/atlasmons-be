@@ -47,9 +47,10 @@
   .section-title p{color:var(--muted);font-size:13.5px;margin:6px 0 0;}
 
   /* ---- hall of fame ---- */
-  .fame-grid{display:flex;justify-content:center;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-top:36px;}
+  .fame-grid{display:flex;flex-direction:column;align-items:center;gap:22px;margin-top:36px;}
+  .fame-row{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;}
   .fame-card{background:var(--card);border-radius:var(--radius);padding:22px 18px;text-align:center;box-shadow:0 10px 30px rgba(11,79,120,0.10);width:190px;}
-  .fame-card.first{transform:translateY(-14px);border:2px solid var(--accent);}
+  .fame-card.first{border:2px solid var(--accent);}
   .fame-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--wave),var(--ocean));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;margin:0 auto 12px;overflow:hidden;}
   .fame-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
   .fame-rank{display:inline-block;font-size:10.5px;font-weight:800;color:var(--ocean);background:#eaf6f8;padding:3px 12px;border-radius:20px;margin-bottom:8px;white-space:nowrap;}
@@ -127,11 +128,14 @@
     <p>l'équipe</p>
   </div>
   <div class="fame-grid">
+    <div class="fame-row">
     <div class="fame-card first">
       <div class="fame-avatar"><img src="img/lucine.jpg" alt="Lucine Smets"></div>
       <div class="fame-rank">Office Manager</div>
       <div class="fame-name">Lucine Smets</div>
     </div>
+    </div>
+    <div class="fame-row">
     <div class="fame-card">
       <div class="fame-avatar"><img src="img/matthieu.jpg" alt="Matthieu Bouvy"></div>
       <div class="fame-rank">Sales Manager Trial</div>
@@ -142,6 +146,8 @@
       <div class="fame-rank">Sales Manager Trial</div>
       <div class="fame-name">Alexis Plassoff</div>
     </div>
+    </div>
+    <div class="fame-row">
     <div class="fame-card">
       <div class="fame-avatar"><img src="img/kaory.jpg" alt="Kaory Pino"></div>
       <div class="fame-rank">Captain</div>
@@ -151,6 +157,7 @@
       <div class="fame-avatar"><img src="img/soraya.jpg" alt="Soraya Eddahri"></div>
       <div class="fame-rank">Captain</div>
       <div class="fame-name">Soraya Eddahri</div>
+    </div>
     </div>
   </div>
 </section>
